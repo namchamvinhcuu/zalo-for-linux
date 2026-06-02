@@ -10,6 +10,11 @@ const fs    = require('fs');
 const https = require('https');
 const path  = require('path');
 
+// Auto-update is disabled: this is a custom local build with fixes (ZaDark CSS
+// injection, tray icon) that the upstream release does not have. Pulling the
+// upstream AppImage would overwrite them. Flip to `true` to re-enable.
+const UPDATES_ENABLED = false;
+
 let _appDir        = null;
 let _getMainWindow = null;
 
@@ -70,6 +75,10 @@ function checkUpdates(callback) {
   if (!isAppImage) return done();
 
   if (!buildInfo) return done({ error: 'build-info.json not found' });
+
+  // Updates disabled — report up-to-date without hitting the network, so no
+  // "update available" badge/prompt appears and nothing can overwrite this build.
+  if (!UPDATES_ENABLED) return done();
 
   const req = https.get(
     'https://api.github.com/repos/doandat943/zalo-for-linux/releases/latest',
