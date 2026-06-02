@@ -6,10 +6,12 @@ Opus — no SRTP/crypto** (see `ZCALL-PHASE2-CAPTURE.md` Round 3). This is the
 engineering reference for the Phase-3 engine.
 
 > Confidence: field *semantics* ~90% (types, SSRC, RTP seq/timestamp, RTCP, the
-> binding header). The exact **Opus payload start offset** (~24-26) is ±1-2 bytes
-> and the role of a few constant bytes is unconfirmed — pin these by
-> disassembling `zrtc::ZRTPPacket::buildPacket` / `_buildPacketInternal` with a
-> Mach-O disassembler (rizin/radare2). All offsets below are into the UDP payload.
+> binding header). The **Opus payload start offset is now CONFIRMED = 25** by
+> disassembling `_buildPacketInternal` (radare2): the audio switch-case does
+> `add r14, 0x19` (=25) then `memcpy(buf+25, payload, len)`. (A 31-byte-header
+> variant `add r14, 0x1f` also exists — likely video / the other leg.) The
+> payload is a libc++ `std::string` member (SSO: `al&1` selects inline vs heap,
+> real `len = stored>>1`). All offsets below are into the UDP payload.
 
 Reference call: relay `42.119.138.120:4200`, client `…:41428`, SSRC `66cdaf12`.
 
@@ -39,8 +41,9 @@ off 17-19 : be de 00            const
 off 20-21 : 01 51               const
 off 22    : 00                  const
 off 23    : 01,02,03,…          per-packet frame counter (+1)
-off 24    : 00                  const (role TBD — header byte, NOT Opus TOC)
-off ~25+  : <Opus payload>      cleartext, variable length   (exact start ±1-2B)
+off 24    : 00                  last header byte (NOT Opus TOC)
+off 25+   : <Opus payload>      cleartext, variable length — CONFIRMED start=25
+                                (disasm: audio case `add r14,0x19; memcpy`)
 ```
 
 ★ The +960 timestamp step is the decisive proof: standard Opus over a 48 kHz RTP
@@ -109,8 +112,15 @@ to each `ZRTPServerInfo` candidate; the responsive relay wins.
 4. Pin exact Opus offset + the TBD constant bytes via disassembly before coding
    the parser, to avoid off-by-N bugs.
 
-## Open items (need disassembly — option B)
-- Exact Opus payload start (off 24 vs 25 vs 26) and the constant `00` at off24.
-- Meaning of consts `90`, `be de 00`, `01 51`, `13`.
-- `02 01` packet type.
-- Whether the header has a checksum/auth field anywhere (none obvious; no crypto lib linked).
+## Open items
+- ✅ ~~Exact Opus payload start~~ — CONFIRMED = **25** (disasm). 31-byte variant = video/other leg.
+- Meaning of consts `90`, `be de 00`, `01 51`, `13` (cosmetic — not needed to build packets).
+- `02 01` packet type (minor control).
+- Checksum/auth: none — `_buildPacketInternal` is a plain field-by-field serializer
+  + `memcpy` of the payload, no crypto/MAC step (consistent with no crypto lib linked).
+
+## ZRTPPacket member offsets (from `initZRTPPacketAudio` / `_buildPacketInternal`)
+Internal object layout (not the wire — for anyone reading the binary further):
+`+8` type/flag byte · `+9` byte · `+0x18` dword (arg4) · `+0x1c` word (→ header,
+seq/PT) · `+0x38` dword (arg3) · `+0x40` word =9 · payload `std::string` around
+`+0x20`/`+0x30` (SSO) and `+0x49`/`+0x70`, length near `+0x5e8`.
