@@ -6,6 +6,43 @@ Hướng dẫn làm việc cho Claude trong dự án **zalo-for-linux**.
 
 ---
 
+## 0. Knowledge Base (Obsidian vault) — BẮT BUỘC
+
+Dự án có một Obsidian vault chứa tri thức tích luỹ, truy cập qua symlink
+`./.obsidian-vault` (→ cloud storage, per-machine, đã gitignore). Đây là nguồn
+chính xác nhất về workflow, skill, fix đã làm.
+
+### Đầu session — load order (đọc theo thứ tự, on-demand)
+
+1. `CLAUDE.md` (file này) — auto-loaded.
+2. **`./.obsidian-vault/Index.md`** — bản đồ trung tâm. Đọc ĐẦU TIÊN để định hướng.
+3. `./.obsidian-vault/Change-Log/README.md` — 3 thay đổi gần nhất (state hiện tại).
+4. Atomic notes (`Architecture/`, `Knowledge-Base/`, `Features/`, `Fix-History/`)
+   — đọc khi Index hoặc task tham chiếu tới.
+
+Nếu `.obsidian-vault` chưa tồn tại trên máy (symlink hỏng) → báo user, không tự tạo.
+
+### Khi debug — Vault-First
+
+Khi user báo lỗi: **quét `Fix-History/` + `Knowledge-Base/` TRƯỚC khi đọc code**
+(grep theo triệu chứng). Nhiều bug đã có post-mortem + pattern fix sẵn.
+
+### Cuối session — Knowledge Loop (cập nhật khi có thay đổi code/logic)
+
+1. **Bug vừa fix** → tạo `Fix-History/YYYY-MM-DD-<Tên-Lỗi>.md` (Hiện tượng / Nguyên nhân / Cách xử lý / Related).
+2. **Pattern/skill tái dùng** → `Knowledge-Base/Skill-<Name>.md` (header + đoạn mã + backlink).
+3. **Workflow/cấu trúc mới** → `Architecture/<Name>.md`. **Feature mới** → `Features/<Name>.md`.
+4. **Append** entry mới ở TOP của `Change-Log/YYYY-MM.md` (tạo file tháng mới nếu cần) + refresh 3 entry gần nhất trong `Change-Log/README.md`.
+5. **Link** mọi file mới từ `Index.md` (hoặc note mà Index reach tới) — **KHÔNG để orphan**.
+
+### Nguyên tắc vault
+
+- **Atomic note:** mỗi file một vấn đề duy nhất.
+- **No orphan:** mọi file phải có ≥1 wiki-link `[[ ]]` trỏ tới; mọi `[[link]]` phải resolve.
+- Báo user ngắn gọn cuối câu trả lời: "Đã cập nhật vault tại [[file]]…".
+
+---
+
 ## 1. Dự án này là gì
 
 `zalo-for-linux` **không phải là bản viết lại Zalo**. Nó là một **công cụ đóng gói (repackaging tool)**: lấy app Zalo macOS chính thức và bọc lại thành AppImage chạy trên Linux.

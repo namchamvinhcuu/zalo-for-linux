@@ -1,3 +1,6 @@
+# Obsidian vault symlink (per-machine; target lives on cloud storage)
+/.obsidian-vault
+
 # Dependencies
 /node_modules/
 
