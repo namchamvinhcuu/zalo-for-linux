@@ -7,31 +7,23 @@
  *     badge handler; this plugin generates the "logo + dot" icon (offscreen
  *     canvas) and a plain-logo icon and exposes them on global for the patch.
  *   - Dock/launcher: the numeric count. Zalo calls app.setBadgeCount(n), but on
- *     Linux Electron only updates it for Unity launchers; most other docks
- *     (KDE/Plank/Dash-to-Dock/Latte) still listen to the same D-Bus signal, so we
- *     emit com.canonical.Unity.LauncherEntry ourselves via gdbus.
+ *     Linux Electron only emits the LauncherEntry signal for "Unity" desktops;
+ *     most other docks (KDE/Plank/Dash-to-Dock/Latte) listen to the same signal
+ *     but Electron never sends it. We emit it ourselves over a *persistent*
+ *     D-Bus connection (dbus-launcher.js) — receivers like Plank tie the badge
+ *     to the emitting connection's lifetime, so a throwaway `gdbus emit` process
+ *     gets dropped the instant it disconnects and the badge never shows.
  */
 
 'use strict';
 
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
+const { DockBadge } = require('./dbus-launcher');
 
 const DESKTOP_ID = 'zalo.desktop';
 
-// --- Dock numeric badge (Unity LauncherEntry over D-Bus) ---
-function emitDockBadge(count) {
-  const visible = count > 0 ? 'true' : 'false';
-  const props = `{'count': <int64 ${count | 0}>, 'count-visible': <${visible}>}`;
-  const cmd =
-    'gdbus emit --session --object-path /com/canonical/Unity/LauncherEntry ' +
-    '--signal com.canonical.Unity.LauncherEntry.Update ' +
-    `"application://${DESKTOP_ID}" "${props}"`;
-  exec(cmd, (err) => {
-    if (err) console.error('[tray-badge] gdbus emit failed:', err.message);
-  });
-}
+let dockBadge = null;  // persistent D-Bus connection (lazily created)
 
 // --- Tray "logo + red dot" icon (drawn once, offscreen) ---
 function generateDotIcon(appDir) {
@@ -68,7 +60,6 @@ function generateDotIcon(appDir) {
       );
       if (url) {
         global.__zaloTrayDot = nativeImage.createFromDataURL(url);
-        console.error('[tray-badge] dot icon ready');
       } else {
         console.error('[tray-badge] dot draw returned null');
       }
@@ -85,16 +76,16 @@ function register({ app, appDir }) {
 
   // Hook app.setBadgeCount (Zalo calls it) to drive the dock badge.
   try {
+    dockBadge = new DockBadge(`application://${DESKTOP_ID}`);
     const orig = app.setBadgeCount.bind(app);
     Object.defineProperty(app, 'setBadgeCount', {
       value: (count) => {
-        emitDockBadge(count || 0);
+        dockBadge.setCount(count || 0);
         return orig(count);
       },
       writable: true,
       configurable: true,
     });
-    console.error('[tray-badge] dock badge hook installed');
   } catch (e) {
     console.error('[tray-badge] setBadgeCount hook failed:', e.message);
   }
