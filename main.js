@@ -30,6 +30,7 @@ let isAppQuitting = false;
 // const zaluxPlugin = require('./plugins/zalux');
 const screenshotPlugin = require('./plugins/screenshot');
 const zadarkCssPlugin = require('./plugins/zadark-css');
+const trayBadgePlugin = require('./plugins/tray-badge');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -105,6 +106,7 @@ app.once('ready', () => {
   // zaluxPlugin.register({ app, ipcMain, BrowserWindow, appDir });  // disabled — see require above
   screenshotPlugin.register({ ipcMain });
   zadarkCssPlugin.register({ app, appDir });
+  trayBadgePlugin.register({ app, appDir });
 });
 
 // ---------------------------------------------------------------------------

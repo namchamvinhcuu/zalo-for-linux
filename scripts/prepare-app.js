@@ -165,6 +165,9 @@ async function extractAppAsar() {
 
   const { main: patchTrayIcon } = require('./patches/patch-tray-icon');
   await patchTrayIcon();
+
+  const { main: patchTrayBadge } = require('./patches/patch-tray-badge');
+  await patchTrayBadge();
 }
 
 function commandExists(command) {
