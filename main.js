@@ -23,7 +23,11 @@ let isAppQuitting = false;
 // Plugins
 // ---------------------------------------------------------------------------
 
-const zaluxPlugin = require('./plugins/zalux');
+// Zalux (sidebar button + version window + self-updater) is intentionally
+// disabled — we don't auto-update to the upstream release. Source is kept in
+// plugins/zalux/ for future development; re-enable by uncommenting the require
+// and the register() call below.
+// const zaluxPlugin = require('./plugins/zalux');
 const screenshotPlugin = require('./plugins/screenshot');
 const zadarkCssPlugin = require('./plugins/zadark-css');
 
@@ -98,7 +102,7 @@ app.once('ready', () => {
   }
 
   // Register plugins
-  zaluxPlugin.register({ app, ipcMain, BrowserWindow, appDir });
+  // zaluxPlugin.register({ app, ipcMain, BrowserWindow, appDir });  // disabled — see require above
   screenshotPlugin.register({ ipcMain });
   zadarkCssPlugin.register({ app, appDir });
 });
