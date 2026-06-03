@@ -1,46 +1,29 @@
 // scripts/patches/patch-zcall.js
 //
-// Stage-0 wiring for the zcall Linux engine (see ZCALL-PHASE3-PLAN.md §Stage 0).
+// Un-gate the voice/video call buttons on Linux.
 //
-// Builds the `nativelibs/zcall` scaffold, drops the built .node + the tracing
-// wrapper (trace.js) into the app, and adds a Linux branch to the app's
-// binding.js that loads the *traced* scaffold. The branch is GATED behind the
-// ZCALL_LINUX env var, so a normal AppImage build keeps the original behaviour
-// (`{error: 'not support'}`) — set ZCALL_LINUX=1 only for a dev capture run:
+// The Zalo renderer hides the call buttons behind a chain of macOS-only
+// capability gates. This patch neutralises those gates so the buttons render
+// and the click reaches the call flow. It is anchor-based, idempotent and
+// skip-safe per the project patch rules.
 //
-//   ZCALL_LINUX=1 npm start
-//
-// then place a real outgoing call. The JS signaling runs for real and the
-// tracing wrapper logs every engine input (servers list, callId, genSession,
-// token, config) to ${TMPDIR}/zcall-trace.jsonl (override: ZCALL_TRACE_FILE).
-//
-// The stub never connects, so the call won't complete — Stage 0 only needs the
-// captured inputs. Anchor-based + idempotent + skip-safe per project patch rules.
+// NOTE (2026-06-03): an earlier revision of this patch also built an N-API
+// "tracing scaffold" (nativelibs/zcall + trace.js) and wired a Linux branch
+// into the app's binding.js, on the assumption that v26 drives the call engine
+// through the `vcmac` / zcall_mac.node N-API surface. RE of the IPC handler
+// disproved that: v26's engine is a *separate native executable* (`ZaloCall`,
+// inside ZaloHelper.app) spawned by the main process and driven over two
+// Unix-domain sockets — see .obsidian-vault Architecture/ZCall-Native-Engine-IPC.
+// The vcmac path is legacy and never on the call path, so the tracing scaffold
+// was wrong-layer and has been removed from this patch. nativelibs/zcall is
+// kept in the repo only as a reference (servers/token sample in testConnect()).
 
-const { execSync } = require('child_process');
 const fs = require('fs-extra');
 const path = require('path');
 const logger = require('../utils/logger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const APP_DIR = path.join(ROOT, 'app');
-const NATIVELIBS_DIR = path.join(ROOT, 'nativelibs');
-const BUILDER_SCRIPT = path.join(NATIVELIBS_DIR, 'builder.js');
-const ZCALL_DIR = path.join(NATIVELIBS_DIR, 'zcall');
-const ZCALL_APP_DIR = path.join(APP_DIR, 'native', 'nativelibs', 'zcall');
-
-// Exact original tail of getLib() in the app's binding.js — our anchor.
-const ANCHOR = "else{\n        return {error: 'not support'};\n    }";
-// The engine is loaded by a process whose env does NOT carry ZCALL_LINUX (likely
-// a utility process with a scrubbed env), so the branch must be unconditional on
-// linux — an env gate left getLib() returning {error:'not support'} → the call
-// flow rejected with "not support". (Dev branch; production gating TBD.)
-const LINUX_BRANCH =
-  "else if(process.platform === 'linux'){\n" +
-  "        return require('./zcall-trace.js')(require('./zcall-native.node'));\n" +
-  "    }else{\n        return {error: 'not support'};\n    }";
-// Upgrade an older env-gated branch from a previous patch revision.
-const ENV_GATED = "process.platform === 'linux' && process.env.ZCALL_LINUX";
 
 // The renderer hides the voice/video call buttons behind a capability check
 //   isSupport() === enable_mac_call && enableCall && ie
@@ -79,63 +62,8 @@ const IPC_CALL_RE =
 const IPC_CALL_PATCHED = 'canUseIpcCall(){return!0/*zfl-zcall*/}';
 
 async function main() {
-  logger.info('Wiring zcall Linux scaffold (Stage 0: traced stub engine)...');
-
-  if (!fs.existsSync(path.join(ZCALL_DIR, 'binding.gyp'))) {
-    logger.warn('nativelibs/zcall not found, skipping');
-    return;
-  }
-  if (!fs.existsSync(ZCALL_APP_DIR)) {
-    logger.warn('app zcall dir not found (Zalo layout may have changed), skipping');
-    return;
-  }
-
-  // 1. Build the scaffold addon against the project's Electron N-API headers.
-  try {
-    execSync(`node "${BUILDER_SCRIPT}" "${ZCALL_DIR}"`, { cwd: ROOT, stdio: 'pipe' });
-  } catch (error) {
-    logger.error('Failed to build zcall scaffold', error.message);
-    if (error.stdout) logger.dim(error.stdout.toString());
-    throw new Error('Failed to build zcall scaffold');
-  }
-
-  // 2. Copy the built binary into the app.
-  const built = path.join(ZCALL_DIR, 'build', 'Release', 'zcall-native.node');
-  if (!fs.existsSync(built)) {
-    throw new Error(`zcall build OK but binary missing: ${built}`);
-  }
-  fs.copyFileSync(built, path.join(ZCALL_APP_DIR, 'zcall-native.node'));
-
-  // 3. Copy the tracing wrapper next to it.
-  fs.copyFileSync(
-    path.join(ZCALL_DIR, 'trace.js'),
-    path.join(ZCALL_APP_DIR, 'zcall-trace.js')
-  );
-
-  // 4. Add the gated Linux branch to binding.js (idempotent).
-  const bindingJsPath = path.join(ZCALL_APP_DIR, 'binding.js');
-  let content = fs.readFileSync(bindingJsPath, 'utf8');
-
-  if (content.includes(ENV_GATED)) {
-    content = content.replace(ENV_GATED, "process.platform === 'linux'");
-    fs.writeFileSync(bindingJsPath, content, 'utf8');
-    logger.dim('Upgraded binding.js linux branch (removed ZCALL_LINUX env gate)');
-  } else if (content.includes('zcall-trace.js')) {
-    logger.dim('binding.js already wired for Linux zcall, skipping');
-  } else if (!content.includes(ANCHOR)) {
-    logger.warn('zcall binding.js anchor not found — Zalo layout may have changed, skipping wire');
-    return;
-  } else {
-    content = content.replace(ANCHOR, LINUX_BRANCH);
-    fs.writeFileSync(bindingJsPath, content, 'utf8');
-    logger.dim('Patched binding.js (linux branch, unconditional)');
-  }
-
-  // 5. Un-gate the call buttons in the renderer (see UI_GATE_ANCHOR comment).
-  //    The bundle filename carries a content hash, so scan pc-dist/*.js.
+  logger.info('Un-gating call buttons on Linux...');
   patchCallUiGate();
-
-  logger.success('zcall scaffold wired + call buttons un-gated on Linux');
 }
 
 function patchCallUiGate() {
@@ -199,7 +127,10 @@ function patchCallUiGate() {
       touched++;
     }
   }
-  if (touched > 0) return;
+  if (touched > 0) {
+    logger.success('Call buttons un-gated on Linux');
+    return;
+  }
   if (alreadyDone) {
     logger.dim('Call-UI gates already patched, skipping');
   } else if (!anyAnchor) {
