@@ -1,11 +1,22 @@
 // scripts/patches/patch-zcall.js
 //
-// Un-gate the voice/video call buttons on Linux.
+// Voice/video call support on Linux (route B — Wine bridge).
 //
-// The Zalo renderer hides the call buttons behind a chain of macOS-only
-// capability gates. This patch neutralises those gates so the buttons render
-// and the click reaches the call flow. It is anchor-based, idempotent and
-// skip-safe per the project patch rules.
+// Two independent, anchor-based, idempotent, skip-safe edits:
+//   1. Un-gate the call buttons in the renderer (pc-dist) — see patchCallUiGate().
+//   2. Wire the main-process engine spawn (W() in main-dist/main.js) to our route-B
+//      bridge — see patchEngineSpawn(). On Linux W() currently falls into the macOS
+//      branch and points at ZaloHelper.app/Contents/MacOS/ZaloCall, which doesn't exist
+//      (the engine lives outside app.asar and is Mach-O anyway), so verifyMd5 rejects and
+//      no engine spawns. We inject a `linux` branch pointing at app/zcall-bridge/
+//      bridge-daemon.js, which talks the unix-socket control protocol Electron already
+//      serves and relays it to a Wine-hosted ZaloCall.exe. See .obsidian-vault
+//      Architecture/ZCall-Bridge-Recon + ZCall-Native-Engine-IPC.
+//
+// The md5 gate needs no handling on Linux: the spawn code is
+//   p(e,u).then(t => { if (b && !t) return DID_LOAD_FAIL; ... spawn(e,[g,y]) })
+// with b = ("win32"===platform) && !R, so b is false on Linux and it never bails on a
+// hash mismatch — the bridge file only has to exist (verifyMd5 reads it, resolves false).
 //
 // NOTE (2026-06-03): an earlier revision of this patch also built an N-API
 // "tracing scaffold" (nativelibs/zcall + trace.js) and wired a Linux branch
@@ -20,10 +31,12 @@
 
 const fs = require('fs-extra');
 const path = require('path');
+const { execFileSync } = require('child_process');
 const logger = require('../utils/logger');
 
 const ROOT = path.join(__dirname, '..', '..');
 const APP_DIR = path.join(ROOT, 'app');
+const BRIDGE_SRC = path.join(ROOT, 'nativelibs', 'zcall-bridge');
 
 // The renderer hides the voice/video call buttons behind a capability check
 //   isSupport() === enable_mac_call && enableCall && ie
@@ -61,9 +74,24 @@ const IPC_CALL_RE =
   /canUseIpcCall\(\)\{return \w+\.default\.enable_ipc_call&&\w+\}/g;
 const IPC_CALL_PATCHED = 'canUseIpcCall(){return!0/*zfl-zcall*/}';
 
+// --- (2) Engine spawn: inject a Linux branch into W()'s binary-path picker. ---
+// The picker is an IIFE:  return "win32"===process.platform ? <win path> : <mac path>, e
+// We prepend a `"linux"===` branch that resolves `e` to the bridge daemon (sibling of
+// main-dist, so `o.join(__dirname,"..","zcall-bridge","bridge-daemon.js")`). `o` (path) and
+// `__dirname` are already in scope (the win32 branch uses them). The trailing `,e` of the
+// IIFE still returns the final `e`. Electron then spawns it with [g,y] = [recvSock,sendSock].
+const ENGINE_ANCHOR =
+  '"win32"===process.platform?e=l()?o.join(__dirname,"..","native","qt-call-and-cap","ZaloCall.exe")';
+const ENGINE_MARKER = '/*zfl-zcall-engine*/';
+const ENGINE_LINUX_BRANCH =
+  '"linux"===process.platform?e=o.join(__dirname,"..","zcall-bridge","bridge-daemon.js")' +
+  ENGINE_MARKER + ':';
+
 async function main() {
   logger.info('Un-gating call buttons on Linux...');
   patchCallUiGate();
+  logger.info('Wiring call engine spawn to the route-B bridge...');
+  patchEngineSpawn();
 }
 
 function patchCallUiGate() {
@@ -136,6 +164,68 @@ function patchCallUiGate() {
   } else if (!anyAnchor) {
     logger.warn('Call-UI gate anchors not found — Zalo layout may have changed, skipping');
   }
+}
+
+// Inject the Linux engine-spawn branch into main-dist/main.js and stage the bridge files
+// next to it (app/zcall-bridge/). Skip-safe: warns and returns on any missing piece.
+function patchEngineSpawn() {
+  const mainJs = path.join(APP_DIR, 'main-dist', 'main.js');
+  if (!fs.existsSync(mainJs)) {
+    logger.warn('main-dist/main.js not found, skipping engine-spawn wiring');
+    return;
+  }
+  let content = fs.readFileSync(mainJs, 'utf8');
+
+  if (content.includes(ENGINE_MARKER)) {
+    logger.dim('Engine spawn already wired to bridge, skipping');
+  } else if (!content.includes(ENGINE_ANCHOR)) {
+    logger.warn('Engine-spawn anchor not found in main.js — Zalo layout may have changed, skipping');
+    return;
+  } else {
+    content = content.replace(ENGINE_ANCHOR, ENGINE_LINUX_BRANCH + ENGINE_ANCHOR);
+    fs.writeFileSync(mainJs, content, 'utf8');
+    logger.success('Engine spawn wired to route-B bridge (linux branch in W())');
+  }
+
+  // Stage the bridge files where the injected path expects them: app/zcall-bridge/.
+  stageBridgeFiles();
+}
+
+// Copy bridge-daemon.js (+ bridge-shim.exe, built on demand) into app/zcall-bridge/.
+function stageBridgeFiles() {
+  const destDir = path.join(APP_DIR, 'zcall-bridge');
+  const daemonSrc = path.join(BRIDGE_SRC, 'bridge-daemon.js');
+  if (!fs.existsSync(daemonSrc)) {
+    logger.warn(`bridge-daemon.js missing at ${daemonSrc} — calls will not connect`);
+    return;
+  }
+  fs.ensureDirSync(destDir);
+
+  const daemonDest = path.join(destDir, 'bridge-daemon.js');
+  fs.copySync(daemonSrc, daemonDest);
+  fs.chmodSync(daemonDest, 0o755); // spawned directly via its shebang
+  logger.dim('Staged app/zcall-bridge/bridge-daemon.js');
+
+  const shim = ensureShim();
+  if (shim) {
+    fs.copySync(shim, path.join(destDir, 'bridge-shim.exe'));
+    logger.dim('Staged app/zcall-bridge/bridge-shim.exe');
+  } else {
+    logger.warn('bridge-shim.exe unavailable (need gcc-mingw-w64-i686) — Wine engine bridge disabled');
+  }
+}
+
+// Return path to bridge-shim.exe, building it via mingw if absent. null if unbuildable.
+function ensureShim() {
+  const shim = path.join(BRIDGE_SRC, 'bridge-shim.exe');
+  if (fs.existsSync(shim)) return shim;
+  try {
+    execFileSync('i686-w64-mingw32-gcc',
+      ['-O2', '-Wall', '-static', '-o', 'bridge-shim.exe', 'bridge-shim.c', '-lkernel32'],
+      { cwd: BRIDGE_SRC, stdio: 'pipe' });
+    if (fs.existsSync(shim)) { logger.dim('Built bridge-shim.exe via mingw'); return shim; }
+  } catch (_) { /* mingw missing or build failed */ }
+  return null;
 }
 
 // Recursively collect *.js paths under dir.

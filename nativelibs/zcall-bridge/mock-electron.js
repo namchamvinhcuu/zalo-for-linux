@@ -150,8 +150,13 @@ const sendServer = net.createServer((conn) => {
 const WINE_LOG = '/tmp/zcall-wine.log';
 recvServer.listen(G, () => {
   sendServer.listen(Y_PATH, () => {
-    console.log('servers listening; spawning daemon (wine stderr -> ' + WINE_LOG + ')');
-    daemon = spawn(process.execPath, [DAEMON, G, Y_PATH], {
+    // By default spawn via `node <script>`. With ZCALL_DAEMON set, spawn that path
+    // DIRECTLY ([g,y] only) — exactly how the patched W() invokes the staged daemon via
+    // its shebang — so this rig doubles as a verifier for the patch-zcall.js wiring.
+    const direct = process.env.ZCALL_DAEMON;
+    const [cmd, args] = direct ? [direct, [G, Y_PATH]] : [process.execPath, [DAEMON, G, Y_PATH]];
+    console.log(`servers listening; spawning daemon (${direct ? 'direct/shebang ' + direct : 'node ' + DAEMON}; wine stderr -> ${WINE_LOG})`);
+    daemon = spawn(cmd, args, {
       env: { ...process.env, ZCALL_DEBUG: '1', ZCALL_WINE_LOG: WINE_LOG },
       stdio: ['ignore', 'inherit', 'inherit'],
     });
