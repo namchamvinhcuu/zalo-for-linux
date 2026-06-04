@@ -57,7 +57,14 @@ const ENGINE_DIR = resolveEngineDir();
 // loader, so we never touch the user's system Wine. LD_LIBRARY_PATH is left untouched — the
 // kron4ek loader resolves its own libs — to avoid leaking into other child processes.
 function wineEnv(extra) {
-  const env = { ...process.env, WINEPREFIX, WINEDEBUG: process.env.WINEDEBUG || '-all', ...extra };
+  // Disable mscoree/mshtml everywhere: the engine is Qt (no .NET/HTML), and the bundled
+  // Wine ships no wine-mono/gecko, so without this Wine pops a blocking "install wine-mono"
+  // dialog at engine startup that stalls the whole call.
+  const env = {
+    ...process.env, WINEPREFIX, WINEDEBUG: process.env.WINEDEBUG || '-all',
+    WINEDLLOVERRIDES: process.env.WINEDLLOVERRIDES || 'mscoree,mshtml=',
+    ...extra,
+  };
   if (fs.existsSync(path.join(BUNDLE_WINE_DIR, 'bin', 'wineserver'))) {
     env.WINESERVER = path.join(BUNDLE_WINE_DIR, 'bin', 'wineserver');
     env.WINELOADER = WINE;
