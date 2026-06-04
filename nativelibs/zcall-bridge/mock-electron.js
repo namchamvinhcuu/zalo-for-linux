@@ -150,14 +150,26 @@ const sendServer = net.createServer((conn) => {
 const WINE_LOG = '/tmp/zcall-wine.log';
 recvServer.listen(G, () => {
   sendServer.listen(Y_PATH, () => {
-    // By default spawn via `node <script>`. With ZCALL_DAEMON set, spawn that path
-    // DIRECTLY ([g,y] only) — exactly how the patched W() invokes the staged daemon via
-    // its shebang — so this rig doubles as a verifier for the patch-zcall.js wiring.
+    // Spawn modes (verifiers for the patch-zcall.js wiring):
+    //   default               -> `node <DAEMON>` (dev).
+    //   ZCALL_DAEMON=<path>    -> spawn <path> DIRECTLY ([g,y]) — e.g. the .sh launcher.
+    //   ZCALL_FORCE_ELECTRON=<electron> -> run <DAEMON|ZCALL_DAEMON> via Electron-as-node
+    //                            (ELECTRON_RUN_AS_NODE=1) — the no-system-node code path.
+    const forceElectron = process.env.ZCALL_FORCE_ELECTRON;
     const direct = process.env.ZCALL_DAEMON;
-    const [cmd, args] = direct ? [direct, [G, Y_PATH]] : [process.execPath, [DAEMON, G, Y_PATH]];
-    console.log(`servers listening; spawning daemon (${direct ? 'direct/shebang ' + direct : 'node ' + DAEMON}; wine stderr -> ${WINE_LOG})`);
+    const extraEnv = {};
+    let cmd, args, how;
+    if (forceElectron) {
+      cmd = forceElectron; args = [direct || DAEMON, G, Y_PATH];
+      extraEnv.ELECTRON_RUN_AS_NODE = '1'; how = 'Electron-as-node ' + cmd;
+    } else if (direct) {
+      cmd = direct; args = [G, Y_PATH]; how = 'direct ' + direct;
+    } else {
+      cmd = process.execPath; args = [DAEMON, G, Y_PATH]; how = 'node ' + DAEMON;
+    }
+    console.log(`servers listening; spawning daemon (${how}; wine stderr -> ${WINE_LOG})`);
     daemon = spawn(cmd, args, {
-      env: { ...process.env, ZCALL_DEBUG: '1', ZCALL_WINE_LOG: WINE_LOG },
+      env: { ...process.env, ZCALL_DEBUG: '1', ZCALL_WINE_LOG: WINE_LOG, ...extraEnv },
       stdio: ['ignore', 'inherit', 'inherit'],
     });
     daemon.on('exit', (code) => {

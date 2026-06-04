@@ -85,7 +85,7 @@ const ENGINE_ANCHOR =
   '"win32"===process.platform?e=l()?o.join(__dirname,"..","native","qt-call-and-cap","ZaloCall.exe")';
 const ENGINE_MARKER = '/*zfl-zcall-engine*/';
 const ENGINE_LINUX_BRANCH =
-  '"linux"===process.platform?e=o.join(__dirname,"..","zcall-bridge","bridge-daemon.js")' +
+  '"linux"===process.platform?e=o.join(__dirname,"..","zcall-bridge","bridge-daemon.sh")' +
   ENGINE_MARKER + ':';
 
 async function main() {
@@ -177,8 +177,14 @@ function patchEngineSpawn() {
   }
   let content = fs.readFileSync(mainJs, 'utf8');
 
-  if (content.includes(ENGINE_MARKER)) {
-    logger.dim('Engine spawn already wired to bridge, skipping');
+  if (content.includes('bridge-daemon.sh")' + ENGINE_MARKER)) {
+    logger.dim('Engine spawn already wired to bridge (launcher), skipping');
+  } else if (content.includes('bridge-daemon.js")' + ENGINE_MARKER)) {
+    // Migrate an earlier injection that pointed straight at the .js (needs system node)
+    // to the .sh launcher (node | Electron-as-node).
+    content = content.replace('bridge-daemon.js")' + ENGINE_MARKER, 'bridge-daemon.sh")' + ENGINE_MARKER);
+    fs.writeFileSync(mainJs, content, 'utf8');
+    logger.success('Engine spawn migrated to bridge-daemon.sh launcher');
   } else if (!content.includes(ENGINE_ANCHOR)) {
     logger.warn('Engine-spawn anchor not found in main.js — Zalo layout may have changed, skipping');
     return;
@@ -204,8 +210,19 @@ function stageBridgeFiles() {
 
   const daemonDest = path.join(destDir, 'bridge-daemon.js');
   fs.copySync(daemonSrc, daemonDest);
-  fs.chmodSync(daemonDest, 0o755); // spawned directly via its shebang
+  fs.chmodSync(daemonDest, 0o755);
   logger.dim('Staged app/zcall-bridge/bridge-daemon.js');
+
+  // Launcher W() actually spawns (no system Node required): sh wrapper -> node | Electron-as-node.
+  const launchSrc = path.join(BRIDGE_SRC, 'bridge-daemon.sh');
+  if (fs.existsSync(launchSrc)) {
+    const launchDest = path.join(destDir, 'bridge-daemon.sh');
+    fs.copySync(launchSrc, launchDest);
+    fs.chmodSync(launchDest, 0o755);
+    logger.dim('Staged app/zcall-bridge/bridge-daemon.sh');
+  } else {
+    logger.warn('bridge-daemon.sh missing — W() launch will need system node');
+  }
 
   const shim = ensureShim();
   if (shim) {
