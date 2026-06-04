@@ -34,7 +34,7 @@ const os = require('os');
 const { spawn } = require('child_process');
 
 const HOME = os.homedir();
-const WINEPREFIX = process.env.ZCALL_WINEPREFIX || path.join(HOME, 'Wine-Apps', 'zalo-2112');
+const WINEPREFIX = process.env.ZCALL_WINEPREFIX || path.join(HOME, 'Namchamvinhcuu-Wine-Apps', 'Zalo');
 const ENGINE_DIR = process.env.ZCALL_ENGINE_DIR || path.join(WINEPREFIX, 'drive_c', 'zalo-engine');
 const SHIM_EXE   = process.env.ZCALL_SHIM_EXE   || path.join(__dirname, 'bridge-shim.exe');
 const WINE       = process.env.ZCALL_WINE       || 'wine';

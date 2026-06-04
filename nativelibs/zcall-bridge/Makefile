@@ -9,7 +9,7 @@ LDFLAGS := -lkernel32
 # Wine prefix + engine dir. Defaults match dev1-pc (Zalo Win 21.12.1 engine extracted into
 # a portable prefix). Override on the command line for other machines/versions:
 #   make bridge-test WINEPREFIX=~/Wine-Apps/zalo ENGINE_DIR=.../plugins/capture
-WINEPREFIX ?= $(HOME)/Wine-Apps/zalo-2112
+WINEPREFIX ?= $(HOME)/Namchamvinhcuu-Wine-Apps/Zalo
 ENGINE_DIR ?= $(WINEPREFIX)/drive_c/zalo-engine
 # Legacy MITM target (nam-laptop layout, Zalo Win 26.1.10 installed in-place)
 ZALO_CAP_DIR := $(HOME)/Wine-Apps/zalo/drive_c/users/$(USER)/AppData/Local/Programs/Zalo/Zalo-26.1.10/plugins/capture
