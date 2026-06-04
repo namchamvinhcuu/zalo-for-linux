@@ -69,7 +69,21 @@ function wineEnv(extra) {
 // is Qt, not .NET/HTML) so it doesn't hang. Detected as done by system.reg presence.
 function ensurePrefix() {
   return new Promise((resolve) => {
-    if (fs.existsSync(path.join(WINEPREFIX, 'system.reg'))) return resolve();
+    const reg = path.join(WINEPREFIX, 'system.reg');
+    if (fs.existsSync(reg)) {
+      // Stale-arch guard: the bundled Wine is wow64 and needs a win64 prefix. A win32 prefix
+      // (e.g. left by an older/system-wine setup) makes the 32-bit engine fail to load
+      // (kernel32 c0000135) — recreate it. The engine lives in the bundle, never the prefix,
+      // so wiping prefix state is safe.
+      const usingBundledWine = fs.existsSync(path.join(BUNDLE_WINE_DIR, 'bin', 'wine'));
+      let staleArch = false;
+      if (usingBundledWine) {
+        try { staleArch = /#arch=win32/.test(fs.readFileSync(reg, 'utf8').slice(0, 256)); } catch (_) {}
+      }
+      if (!staleArch) return resolve();
+      log('prefix is win32 but bundled Wine needs win64 — recreating...');
+      try { fs.rmSync(WINEPREFIX, { recursive: true, force: true }); } catch (_) {}
+    }
     log('initializing wine prefix (first run, ~30-60s)...');
     const wb = spawn(WINE, ['wineboot', '-i'], {
       env: wineEnv({ WINEDLLOVERRIDES: 'mscoree,mshtml=' }), stdio: 'ignore',
