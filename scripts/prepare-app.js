@@ -168,6 +168,9 @@ async function extractAppAsar() {
 
   const { main: patchTrayBadge } = require('./patches/patch-tray-badge');
   await patchTrayBadge();
+
+  const { main: patchZcall } = require('./patches/patch-zcall');
+  await patchZcall();
 }
 
 function commandExists(command) {

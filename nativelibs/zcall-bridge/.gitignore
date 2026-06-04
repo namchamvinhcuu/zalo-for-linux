@@ -1,0 +1,4 @@
+# Build artifacts (PE32 built via mingw, rebuild from source)
+*.exe
+# Captured traffic — contains personal data (caller/callee IDs, sessId, names). Never commit.
+*.log

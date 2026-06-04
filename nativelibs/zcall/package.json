@@ -1,0 +1,13 @@
+{
+  "name": "zcall-linux",
+  "version": "0.0.1",
+  "description": "Linux reimplementation of Zalo zcall (voice/video) native addon — WIP scaffold",
+  "main": "index.js",
+  "private": true,
+  "scripts": {
+    "build": "node-gyp configure build"
+  },
+  "dependencies": {
+    "node-addon-api": "^5.0.0"
+  }
+}
