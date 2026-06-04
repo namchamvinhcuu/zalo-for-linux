@@ -72,6 +72,27 @@ function wineEnv(extra) {
   return env;
 }
 
+// Tear down every Wine process in our dedicated prefix. The control pipe name is a singleton
+// (\\.\pipe\PipeZCallRecv); if a previous call's engine or wineserver was left alive (crash, no
+// cleanup, or the shim exiting without reaping its child), the next call's shim CreateNamedPipe
+// fails with ERROR_PIPE_BUSY (231) and the call dies silently ("clicking call does nothing").
+// Called at startup (clear stale state) and on exit (the engine ZaloCall.exe is a SIBLING Wine
+// process that does NOT die when the shim is killed). The prefix is ours alone, so killing all
+// its processes never touches the user's other Wine apps.
+function killWine(cb) {
+  const ws = fs.existsSync(path.join(BUNDLE_WINE_DIR, 'bin', 'wineserver'))
+    ? path.join(BUNDLE_WINE_DIR, 'bin', 'wineserver')
+    : (process.env.WINESERVER || 'wineserver');
+  let done = false;
+  const fin = () => { if (!done) { done = true; cb && cb(); } };
+  setTimeout(fin, 4000); // never block shutdown on a hung wineserver
+  try {
+    const p = spawn(ws, ['-k'], { env: wineEnv(), stdio: 'ignore' });
+    p.on('exit', fin);
+    p.on('error', fin);
+  } catch (_) { fin(); }
+}
+
 // First run: initialize the dedicated prefix (wineboot -i), skipping gecko/mono (the engine
 // is Qt, not .NET/HTML) so it doesn't hang. Detected as done by system.reg presence.
 function ensurePrefix() {
@@ -92,6 +113,11 @@ function ensurePrefix() {
       try { fs.rmSync(WINEPREFIX, { recursive: true, force: true }); } catch (_) {}
     }
     log('initializing wine prefix (first run, ~30-60s)...');
+    // The bundled (kron4ek wow64) Wine does NOT mkdir -p the prefix path: if WINEPREFIX's
+    // parent doesn't exist it bails with "chdir to <prefix>: No such file or directory" and
+    // creates nothing, so the engine never loads (call silently does nothing). On a clean
+    // machine ~/Namchamvinhcuu-Wine-Apps/ won't exist, so create the full path ourselves.
+    try { fs.mkdirSync(WINEPREFIX, { recursive: true }); } catch (e) { log('mkdir prefix failed:', e.message); }
     const wb = spawn(WINE, ['wineboot', '-i'], {
       env: wineEnv({ WINEDLLOVERRIDES: 'mscoree,mshtml=' }), stdio: 'ignore',
     });
@@ -136,7 +162,7 @@ function start() {
     stdio: ['pipe', 'pipe', wineErr], // stdin=commands->shim, stdout=events<-shim
   });
   shim.on('error', (e) => fatal('cannot launch wine shim:', e.message));
-  shim.on('exit', (code, sig) => { log('shim exited', code, sig); process.exit(code || 0); });
+  shim.on('exit', (code, sig) => { log('shim exited', code, sig); killWine(() => process.exit(code || 0)); });
 
   // --- Electron recv socket (g): we write whole event frames the engine emitted. ---
   const recvSock = net.connect(recvPath);
@@ -201,8 +227,9 @@ function start() {
   });
 }
 
-process.on('SIGINT', () => { try { shim && shim.kill('SIGINT'); } catch (_) {} process.exit(0); });
-process.on('SIGTERM', () => { try { shim && shim.kill('SIGTERM'); } catch (_) {} process.exit(0); });
+process.on('SIGINT', () => { try { shim && shim.kill('SIGKILL'); } catch (_) {} killWine(() => process.exit(0)); });
+process.on('SIGTERM', () => { try { shim && shim.kill('SIGKILL'); } catch (_) {} killWine(() => process.exit(0)); });
 
 log('wine=', WINE, 'engine=', ENGINE_DIR);
-ensurePrefix().then(start);
+// Clear any stale Wine processes holding the singleton pipe BEFORE we start, then init + run.
+killWine(() => ensurePrefix().then(start));
