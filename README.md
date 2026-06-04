@@ -4,20 +4,9 @@ An unofficial, community-driven port of the Zalo desktop application for **Linux
 
 Thanks **realdtn2** for the solution: [realdtn2/zalo-linux-2026](https://github.com/realdtn2/zalo-linux-2026).
 
-## ⚠️ Important: Known Issues
+## ⚠️ Known Limitations
 
-- **✅ Voice calls supported:** 1:1 voice calls now work on Linux. The call engine is bundled and runs through a self-contained Wine bridge inside the AppImage — no system Wine or extra setup required. (Video calls are not supported yet.)
-- **System/Auto Theme not working:** The app does not follow the system's dark/light mode. Both ZaDark and Zalo ignore `prefers-color-scheme`. See [issue #22](https://github.com/namchamvinhcuu/zalo-for-linux/issues/22).
-- **Can't paste images from clipboard:** Image files (`.png`, `.jpg`, `.jpeg`, …) cannot be pasted into chats via `Ctrl+V`. Other file formats (`.docx`, `.pdf`, `.mp4`, …) paste normally. See [issue #23](https://github.com/namchamvinhcuu/zalo-for-linux/issues/23).
-- **✅ Fixed: Message Synchronization (E2EE)** - Thanks to [@realdtn2](https://github.com/realdtn2) for reimplementing `db-cross-v4` with C++. E2EE message sync now works on Linux without any Wine workaround. Thanks to [@DMKha2k7](https://github.com/DMKha2k7) for the PR. See [PR #24](https://github.com/namchamvinhcuu/zalo-for-linux/pull/24) and [issue #15](https://github.com/namchamvinhcuu/zalo-for-linux/issues/15).
-- **✅ Fixed: No Photos/Videos, Files and Links on the Conversation Info panel** - Caused by the missing `db-cross-v4` module.
-- **✅ Fixed: Can't see message reactions** - Caused by the missing `db-cross-v4` module.
-- **✅ Fixed: Screenshot without/with Zalo window button** - Uses native Linux screenshot tools (see [issue #19](https://github.com/namchamvinhcuu/zalo-for-linux/issues/19)). Supported tools: deepin-screen-recorder, spectacle, flameshot, gnome-screenshot, xfce4-screenshooter, mate-screenshot, ksnapshot, scrot. Thanks to [@hthienloc](https://github.com/hthienloc) for the solution.
-- **✅ Fixed: No title bar with minimize/maximize/close buttons** - Thanks to [@NanKillBro](https://github.com/NanKillBro) for the solution. For more details, see [issue #4](https://github.com/namchamvinhcuu/zalo-for-linux/issues/4)
-- **✅ Fixed: No tray menu icon**
-- **✅ Fixed: Freeze on login screen** - Replaced macOS sqlite3 binaries with native Linux builds. See [issue #13](https://github.com/namchamvinhcuu/zalo-for-linux/issues/13).
-
-This project is best suited for users who need a native-feeling Zalo client on Linux and are comfortable with the technical workarounds required for full functionality.
+- **Video calls are not supported yet.** Everything else works on Linux — messaging, E2EE message sync, 1:1 voice calls, dark mode (ZaDark), native screenshots, clipboard image paste, title bar, and tray/dock unread indicators.
 
 ## 🌙 ZaDark Integration
 
@@ -40,17 +29,23 @@ This project includes integrated [ZaDark](https://github.com/quaric/zadark), ZaD
 
 ## 🚀 Quick Start
 
-### Usage
+### Install (prebuilt AppImage)
 
-We strongly recommend using **Gear Lever** to integrate the AppImage perfectly into your system menu.
+1.  Download the latest `.AppImage` from the [**Releases**](https://github.com/namchamvinhcuu/zalo-for-linux/releases) page.
+2.  Make it executable and run it:
 
-**Note:** Zalo for Linux comes with a built-in updater. Whenever a new release is available, you will be prompted within the Zalo app to download and apply the update seamlessly without leaving the application.
+    ```bash
+    chmod +x Zalo-*.AppImage
+    ./Zalo-*.AppImage
+    ```
 
-1.  Download the latest `.AppImage` file from the [**Releases**](https://github.com/namchamvinhcuu/zalo-for-linux/releases) page.
-2.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
-3.  Open **Gear Lever**.
-4.  Click the **"Open"** button in the top-left corner and select the `.AppImage` file you downloaded.
-5.  The app will now appear in Gear Lever. Click the **"Unlock"** button, then choose **"Move to the app menu"** to integrate it into your system's application launcher.
+To add Zalo to your application menu, we recommend **Gear Lever**:
+
+1.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
+2.  Open **Gear Lever**, click **"Open"** (top-left) and select the downloaded `.AppImage`.
+3.  Click **"Unlock"**, then choose **"Move to the app menu"** to integrate it into your launcher.
+
+The AppImage is self-contained — no system Wine, Node, or extra runtime is required, including for voice calls.
 
 ### Build from Source
 
@@ -58,7 +53,7 @@ Prerequisites:
 
 - Linux x86_64
 - Node.js and npm
-- 7z (p7zip-full) for extracting the macOS app during setup
+- `7z` (`p7zip-full`) — extracts the macOS app during setup
 - C++ build tools (for native addons): `build-essential`, `libssl-dev`, `liblzma-dev`
 
 On Debian/Ubuntu:
@@ -67,24 +62,27 @@ On Debian/Ubuntu:
 sudo apt-get update && sudo apt-get install -y p7zip-full build-essential libssl-dev liblzma-dev
 ```
 
-Steps:
+Build:
 
 ```bash
-# Clone the repository
+# Clone + init submodules (ZaDark)
 git clone https://github.com/namchamvinhcuu/zalo-for-linux.git
 cd zalo-for-linux
-# Then initialize or update submodules
 git submodule update --init --recursive
 
-# Run setup + build (downloads DMG, extracts, patches, packages)
+# Setup + build: download DMG -> extract -> patch -> package
 npm run main
 ```
 
-The final AppImage will be in the `dist/` directory.
+The final AppImage lands in `dist/`.
 
-> For a detailed walkthrough of the build pipeline, scripts, environment
-> variables, and how to add new patches, see
-> [DEVELOPMENT.md](./DEVELOPMENT.md).
+> **Voice calls** are powered by a bundled Wine plus the Windows call engine that
+> the build stages into the AppImage. See [ARCHITECTURE.md](./ARCHITECTURE.md) →
+> "Voice calls (route B)" for how that bundle is sourced; a build without it still
+> produces a fully working messaging client.
+
+> For the full build pipeline, scripts, environment variables, and how to add
+> patches, see [DEVELOPMENT.md](./DEVELOPMENT.md).
 
 ## ⚙️ How It Works
 
