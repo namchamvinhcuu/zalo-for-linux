@@ -48,8 +48,15 @@ const PIPE_SEND = '\\\\.\\pipe\\PipeZCallSend';
 const recvPath = process.argv[2]; // g: engine -> Electron (we WRITE events here)
 const sendPath = process.argv[3]; // y: Electron -> engine (we READ commands, WRITE acks)
 
-function log(...a) { if (DEBUG) console.error('[zcall-bridge]', ...a); }
-function fatal(...a) { console.error('[zcall-bridge] FATAL', ...a); process.exit(1); }
+// When Electron spawns us its stdio is piped into Zalo's own logger, so console output is
+// hard to observe. ZCALL_LOG (a file path) gives a direct, always-on trace channel.
+const LOG_FILE = process.env.ZCALL_LOG || null;
+function emit(line) {
+  if (DEBUG) console.error(line);
+  if (LOG_FILE) { try { fs.appendFileSync(LOG_FILE, new Date().toISOString() + ' ' + line + '\n'); } catch (_) {} }
+}
+function log(...a) { emit('[zcall-bridge] ' + a.join(' ')); }
+function fatal(...a) { emit('[zcall-bridge] FATAL ' + a.join(' ')); process.exit(1); }
 
 if (!recvPath || !sendPath) fatal('need argv: <recvSocketPath> <sendSocketPath>');
 
