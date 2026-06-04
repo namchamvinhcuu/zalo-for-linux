@@ -1,4 +1,4 @@
-# Build pipe-probe.exe (PE32, 32-bit Windows, runs under Wine).
+# Build the PE32 tools (32-bit Windows, run under Wine).
 # Requires: gcc-mingw-w64-i686  (apt install)
 #   sudo apt install -y gcc-mingw-w64-i686
 
@@ -6,21 +6,27 @@ CC := i686-w64-mingw32-gcc
 CFLAGS := -O2 -Wall -static
 LDFLAGS := -lkernel32
 
-# Wine prefix where Zalo Win 26.1.10 is installed
-WINEPREFIX ?= $(HOME)/Wine-Apps/zalo
-ZALO_CAP_DIR := $(WINEPREFIX)/drive_c/users/namchamvinhcuu/AppData/Local/Programs/Zalo/Zalo-26.1.10/plugins/capture
+# Wine prefix + engine dir. Defaults match dev1-pc (Zalo Win 21.12.1 engine extracted into
+# a portable prefix). Override on the command line for other machines/versions:
+#   make bridge-test WINEPREFIX=~/Wine-Apps/zalo ENGINE_DIR=.../plugins/capture
+WINEPREFIX ?= $(HOME)/Wine-Apps/zalo-2112
+ENGINE_DIR ?= $(WINEPREFIX)/drive_c/zalo-engine
+# Legacy MITM target (nam-laptop layout, Zalo Win 26.1.10 installed in-place)
+ZALO_CAP_DIR := $(HOME)/Wine-Apps/zalo/drive_c/users/$(USER)/AppData/Local/Programs/Zalo/Zalo-26.1.10/plugins/capture
 
-.PHONY: all run clean install-mitm uninstall-mitm mitm-log
+.PHONY: all run clean install-mitm uninstall-mitm mitm-log bridge-test
 
-all: pipe-probe.exe pipe-mitm.exe
+all: pipe-probe.exe pipe-mitm.exe engine-probe.exe bridge-shim.exe
 
-pipe-probe.exe: pipe-probe.c
+%.exe: %.c
 	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
 	@file $@
 
-pipe-mitm.exe: pipe-mitm.c
-	$(CC) $(CFLAGS) -o $@ $< $(LDFLAGS)
-	@file $@
+# End-to-end route-B bridge self-test: mock-electron spawns bridge-daemon -> wine
+# bridge-shim -> ZaloCall.exe, verifies native-ready + multi-chunk command flow.
+# Needs the engine present at ENGINE_DIR and gcc-mingw + wine installed.
+bridge-test: bridge-shim.exe
+	WINEPREFIX=$(WINEPREFIX) ZCALL_ENGINE_DIR=$(ENGINE_DIR) node mock-electron.js
 
 # Run probe under Wine. ZaloCall.exe must already be spawned (initiate a call first).
 # Pipe paths are kept literal in single-quotes — Make/shell don't transform backslashes
@@ -71,4 +77,4 @@ mitm-log:
 	tail -f "$$LOG"
 
 clean:
-	rm -f pipe-probe.exe pipe-mitm.exe probe.log
+	rm -f pipe-probe.exe pipe-mitm.exe engine-probe.exe bridge-shim.exe probe.log
