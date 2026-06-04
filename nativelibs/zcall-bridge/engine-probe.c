@@ -127,6 +127,30 @@ int main(int argc, char **argv) {
     // --- 4. Read engine events; observe whether it reaches native-ready ---
     HANDLE t = CreateThread(NULL, 0, recv_thread, h_recv, 0, NULL);
 
+    // --- 4b. Optional: inject one raw frame to the engine to test the read path.
+    // If C:\zcall-inject.bin exists, write its raw bytes to the send pipe once.
+    // The bytes must already be a full frame: AES-128-CBC(JSON).hex + "$".
+    // Confirms the Windows engine accepts a raw `hex$` command (no buildListMsgs
+    // chunk wrapper) — the format Windows Electron uses (z, not V).
+    {
+        HANDLE hf = CreateFileA("C:\\zcall-inject.bin", GENERIC_READ, FILE_SHARE_READ,
+            NULL, OPEN_EXISTING, 0, NULL);
+        if (hf != INVALID_HANDLE_VALUE) {
+            unsigned char inj[16384]; DWORD n_inj = 0;
+            if (ReadFile(hf, inj, sizeof(inj), &n_inj, NULL) && n_inj > 0) {
+                Sleep(300);  // let native-ready settle first
+                DWORD n_w = 0;
+                BOOL ok = WriteFile(h_send, inj, n_inj, &n_w, NULL);
+                log_line("inject: wrote %lu/%lu bytes ok=%d err=%lu",
+                    (unsigned long)n_w, (unsigned long)n_inj, ok, (unsigned long)GetLastError());
+                log_chunk("CMD-inject", inj, n_inj);
+            }
+            CloseHandle(hf);
+        } else {
+            log_line("inject: no C:\\zcall-inject.bin (read-only run)");
+        }
+    }
+
     log_line("probe running; waiting for engine exit (or kill after observing)");
     WaitForSingleObject(pi.hProcess, INFINITE);
     DWORD code = 0; GetExitCodeProcess(pi.hProcess, &code);
