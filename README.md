@@ -29,27 +29,10 @@ This project includes integrated [ZaDark](https://github.com/quaric/zadark), ZaD
 
 ## 🚀 Quick Start
 
-### Install (prebuilt AppImage)
+> There are no prebuilt releases yet — you build the AppImage yourself. It's a
+> single command once the prerequisites are installed.
 
-1.  Download the latest `.AppImage` from the [**Releases**](https://github.com/namchamvinhcuu/zalo-for-linux/releases) page.
-2.  Make it executable and run it:
-
-    ```bash
-    chmod +x Zalo-*.AppImage
-    ./Zalo-*.AppImage
-    ```
-
-To add Zalo to your application menu, we recommend **Gear Lever**:
-
-1.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
-2.  Open **Gear Lever**, click **"Open"** (top-left) and select the downloaded `.AppImage`.
-3.  Click **"Unlock"**, then choose **"Move to the app menu"** to integrate it into your launcher.
-
-The AppImage is self-contained — no system Wine, Node, or extra runtime is required, including for voice calls.
-
-### Build from Source
-
-Prerequisites:
+### 1. Install prerequisites
 
 - Linux x86_64
 - Node.js and npm
@@ -62,7 +45,7 @@ On Debian/Ubuntu:
 sudo apt-get update && sudo apt-get install -y p7zip-full build-essential libssl-dev liblzma-dev
 ```
 
-Build:
+### 2. Build the AppImage
 
 ```bash
 # Clone + init submodules (ZaDark)
@@ -70,11 +53,25 @@ git clone https://github.com/namchamvinhcuu/zalo-for-linux.git
 cd zalo-for-linux
 git submodule update --init --recursive
 
-# Setup + build: download DMG -> extract -> patch -> package
+# Download the macOS DMG, extract, patch, and package into an AppImage
 npm run main
 ```
 
-The final AppImage lands in `dist/`.
+The build produces a **self-contained** AppImage in `dist/` — no system Wine,
+Node, or extra runtime is needed to run it, including for voice calls.
+
+### 3. Run it
+
+```bash
+chmod +x dist/Zalo-*.AppImage
+./dist/Zalo-*.AppImage
+```
+
+To add Zalo to your application menu, we recommend **Gear Lever**:
+
+1.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
+2.  Open **Gear Lever**, click **"Open"** (top-left) and select the AppImage from `dist/`.
+3.  Click **"Unlock"**, then choose **"Move to the app menu"** to integrate it into your launcher.
 
 > **Voice calls** are powered by a bundled Wine plus the Windows call engine that
 > the build stages into the AppImage. See [ARCHITECTURE.md](./ARCHITECTURE.md) →
@@ -102,9 +99,7 @@ For native addons (db-cross-v4, etc.), see
 
 ## 🐛 Troubleshooting & Debugging
 
-If you encounter issues or want to inspect the app's behavior, you can easily open Chrome Developer Tools (DevTools) using the following methods:
-- **Keyboard Shortcut**: Press `Ctrl` + `Shift` + `I` while the Zalo window is focused.
-- **Tray Menu**: Right-click the Zalo tray icon and select **"Toggle DevTools"**.
+If you encounter issues or want to inspect the app's behavior, open Chrome Developer Tools (DevTools) with the keyboard shortcut `Ctrl` + `Shift` + `I` while the Zalo window is focused.
 
 ## 📚 More Documentation
 

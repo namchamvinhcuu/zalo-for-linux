@@ -143,8 +143,7 @@ Always check for the expected pattern before replacing — Zalo versions change,
 ## Debugging the Extracted App
 
 - **DevTools**: Press `Ctrl+Shift+I` in the Zalo window
-- **Tray menu**: Right-click the tray icon → "Toggle DevTools"
-- **Logs**: Check `~/.config/Zalo/logs/` or run with `ELECTRON_ENABLE_LOGGING=1`
+- **Logs**: Check `~/.config/ZaloData/logs/` or run with `ELECTRON_ENABLE_LOGGING=1`
 
 ## Plugin Development
 
