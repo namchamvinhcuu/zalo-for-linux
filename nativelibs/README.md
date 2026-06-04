@@ -37,6 +37,7 @@ addons. Each addon is otherwise self-contained.
 | Addon | Status | Description |
 |-------|--------|-------------|
 | [db-cross-v4](./db-cross-v4) | ✅ Implemented | Backup decryption |
+| [zcall](./zcall) | 🚧 WIP (scaffold) | Voice/video calls — builds + loads, stubs only. See `ZCALL-RECON.md` |
 
 ## Building an Addon
 
