@@ -24,7 +24,7 @@ sudo apt-get update && sudo apt-get install -y p7zip-full build-essential libssl
 
 ```bash
 # Clone
-git clone https://github.com/doandat943/zalo-for-linux.git
+git clone https://github.com/namchamvinhcuu/zalo-for-linux.git
 cd zalo-for-linux
 
 # Init submodules (ZaDark, etc.)
@@ -151,7 +151,10 @@ Always check for the expected pattern before replacing — Zalo versions change,
 The project supports plugins under `plugins/`:
 
 - `zadark/` — Dark mode extension (git submodule from
-  [quaric/zadark](https://github.com/quaric/zadark))
-- `zalux/` — Linux UX improvements (screenshot button, etc.)
+  [quaric/zadark](https://github.com/quaric/zadark)), integrated at build time
+- `zadark-css/` — Runtime CSS/font injection so ZaDark styling survives the SPA
+- `screenshot/` — Native Linux screenshot (intercepts the `screen-capture` IPC)
+- `tray-badge/` — Unread indicator: tray red dot + dock count via a persistent D-Bus connection
+- `zalux/` — In-app updater (disabled by default; the `require` in `main.js` is commented out)
 
-Each plugin is loaded in `main.js`. See existing plugins for examples.
+The runtime plugins are loaded in `main.js`. See existing plugins for examples.

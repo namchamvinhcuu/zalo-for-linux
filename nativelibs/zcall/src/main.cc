@@ -17,7 +17,7 @@
 //   changeVideoDevice, setAudioVolume, setAgc, getCallInfo, getJsonStats406,
 //   getActiveAudioCodecs, getExtendData
 //
-// Roadmap (see ZCALL-RECON.md at repo root):
+// Roadmap (historical — superseded by the route-B Wine bridge, see ../zcall-bridge):
 //   Phase 2  Capture a real call (RTP/RTCP to relay servers + ZRTP handshake)
 //            to reverse the wire format.  <-- DECISION GATE, do before the engine.
 //   Phase 3  Audio-only: libwebrtc base + ALSA/PulseAudio I/O + Opus codec +

@@ -7,7 +7,7 @@ const MAIN_DIST = path.join(APP_DIR, 'main-dist');
 
 // Ported from realdtn2/zalo-linux-2026 (commits 5d5d633 + cc2bb18).
 // Fixes "Can't paste images from clipboard" (issue #23) on the upstream
-// doandat943 build, which ships a current Zalo core but lacks this fix.
+// build, which ships a current Zalo core but lacks this fix.
 //
 // Two parts:
 //   1. Native helpers added to the $zelectronNative bridge in every preload.

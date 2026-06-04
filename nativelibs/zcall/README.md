@@ -1,18 +1,19 @@
-# zcall (Linux) — WIP
+# zcall (Linux) — legacy / reference
 
-Linux reimplementation of Zalo's `zcall` voice/video native addon.
+Early Linux reimplementation attempt for Zalo's `zcall` voice/video native addon.
 
-**Status: scaffold.** Builds + loads + passes the JS availability check
-(`test(123) === 123`); it does NOT place real calls yet. It is intentionally
-**not wired into the app's `binding.js`** — the app still cleanly reports "calls
-not supported" until the engine is functional, so users don't hit a fake button.
+> **Legacy — not built or wired in.** This N-API scaffold was the wrong layer:
+> Zalo v26 drives the call engine as a *spawned native executable*, not through
+> an N-API addon. Voice calls now work via the **route-B Wine bridge**
+> (`../zcall-bridge`) — see [ARCHITECTURE.md](../../ARCHITECTURE.md) → "Voice
+> calls". This folder is kept only for the API-surface / signaling notes below.
 
 ## Why this exists
 
 The shipped `zcall_mac.node` is a macOS Mach-O binary (a fork of Google WebRTC
-called `zrtc`) and can't load on Linux. See `ZCALL-RECON.md` (repo root) for the
-full reconnaissance: API surface, signaling (exposed at the JS layer), media
-(server-relayed RTP/RTCP + ZRTP), and the phased roadmap.
+called `zrtc`) and can't load on Linux. This folder documents the reconnaissance
+that informed the working solution: API surface, signaling (exposed at the JS
+layer), and media (server-relayed RTP/RTCP + ZRTP).
 
 ## Build (standalone, for development)
 

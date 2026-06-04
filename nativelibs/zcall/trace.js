@@ -9,8 +9,8 @@
 // Goal: capture the real engine inputs the HTTPS signaling layer feeds the
 // engine during a real outgoing call on Linux — the `servers` list, `callId`,
 // `genSession`, token material and `config` blob — even though the stub never
-// actually connects. See ZCALL-PHASE3-PLAN.md §Stage 0 and the deliverable
-// ZCALL-SIGNALING-INPUTS.md.
+// actually connects. (Historical recon helper; the working call path is the
+// route-B Wine bridge in ../zcall-bridge.)
 //
 // Dependency-free (must run inside the packaged Electron app). Writes a JSONL
 // trace file plus a short line to stderr per call. Activated only when the app

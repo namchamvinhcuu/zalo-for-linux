@@ -37,7 +37,8 @@ addons. Each addon is otherwise self-contained.
 | Addon | Status | Description |
 |-------|--------|-------------|
 | [db-cross-v4](./db-cross-v4) | ✅ Implemented | Backup decryption |
-| [zcall](./zcall) | 🚧 WIP (scaffold) | Voice/video calls — builds + loads, stubs only. See `ZCALL-RECON.md` |
+| [zcall-bridge](./zcall-bridge) | ✅ Used (route B) | Voice-call bridge — relays Electron's unix-socket control protocol to the Windows call engine running under a bundled Wine. Not a node-gyp addon (a daemon + PE32 shim). See [ARCHITECTURE.md](../ARCHITECTURE.md) → "Voice calls". |
+| [zcall](./zcall) | ⚠️ Legacy (reference) | Early N-API scaffold for calls. Wrong layer — v26 drives the call engine as a spawned native executable, not via N-API — so this is **not built or loaded**; kept only as a reference. |
 
 ## Building an Addon
 

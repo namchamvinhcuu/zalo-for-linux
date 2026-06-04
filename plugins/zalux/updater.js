@@ -81,7 +81,7 @@ function checkUpdates(callback) {
   if (!UPDATES_ENABLED) return done();
 
   const req = https.get(
-    'https://api.github.com/repos/doandat943/zalo-for-linux/releases/latest',
+    'https://api.github.com/repos/namchamvinhcuu/zalo-for-linux/releases/latest',
     { headers: { 'User-Agent': 'zalo-for-linux-updater' } },
     (res) => {
       let data = '';

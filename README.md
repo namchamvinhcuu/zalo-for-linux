@@ -1,23 +1,21 @@
 # Zalo for Linux 🐧
 
-[![Build Status](https://github.com/doandat943/zalo-for-linux/actions/workflows/build.yml/badge.svg)](https://github.com/doandat943/zalo-for-linux/actions/workflows/build.yml)
-
 An unofficial, community-driven port of the Zalo desktop application for **Linux only**, created by repackaging the official macOS client into a standard AppImage with integrated ZaDark.
 
 Thanks **realdtn2** for the solution: [realdtn2/zalo-linux-2026](https://github.com/realdtn2/zalo-linux-2026).
 
 ## ⚠️ Important: Known Issues
 
-- **Can't make or receive calls:** The call module (`zcall`) only ships as a macOS native binary.
-- **System/Auto Theme not working:** The app does not follow the system's dark/light mode. Both ZaDark and Zalo ignore `prefers-color-scheme`. See [issue #22](https://github.com/doandat943/zalo-for-linux/issues/22).
-- **Can't paste images from clipboard:** Image files (`.png`, `.jpg`, `.jpeg`, …) cannot be pasted into chats via `Ctrl+V`. Other file formats (`.docx`, `.pdf`, `.mp4`, …) paste normally. See [issue #23](https://github.com/doandat943/zalo-for-linux/issues/23).
-- **✅ Fixed: Message Synchronization (E2EE)** - Thanks to [@realdtn2](https://github.com/realdtn2) for reimplementing `db-cross-v4` with C++. E2EE message sync now works on Linux without any Wine workaround. Thanks to [@DMKha2k7](https://github.com/DMKha2k7) for the PR. See [PR #24](https://github.com/doandat943/zalo-for-linux/pull/24) and [issue #15](https://github.com/doandat943/zalo-for-linux/issues/15).
+- **✅ Voice calls supported:** 1:1 voice calls now work on Linux. The call engine is bundled and runs through a self-contained Wine bridge inside the AppImage — no system Wine or extra setup required. (Video calls are not supported yet.)
+- **System/Auto Theme not working:** The app does not follow the system's dark/light mode. Both ZaDark and Zalo ignore `prefers-color-scheme`. See [issue #22](https://github.com/namchamvinhcuu/zalo-for-linux/issues/22).
+- **Can't paste images from clipboard:** Image files (`.png`, `.jpg`, `.jpeg`, …) cannot be pasted into chats via `Ctrl+V`. Other file formats (`.docx`, `.pdf`, `.mp4`, …) paste normally. See [issue #23](https://github.com/namchamvinhcuu/zalo-for-linux/issues/23).
+- **✅ Fixed: Message Synchronization (E2EE)** - Thanks to [@realdtn2](https://github.com/realdtn2) for reimplementing `db-cross-v4` with C++. E2EE message sync now works on Linux without any Wine workaround. Thanks to [@DMKha2k7](https://github.com/DMKha2k7) for the PR. See [PR #24](https://github.com/namchamvinhcuu/zalo-for-linux/pull/24) and [issue #15](https://github.com/namchamvinhcuu/zalo-for-linux/issues/15).
 - **✅ Fixed: No Photos/Videos, Files and Links on the Conversation Info panel** - Caused by the missing `db-cross-v4` module.
 - **✅ Fixed: Can't see message reactions** - Caused by the missing `db-cross-v4` module.
-- **✅ Fixed: Screenshot without/with Zalo window button** - Uses native Linux screenshot tools (see [issue #19](https://github.com/doandat943/zalo-for-linux/issues/19)). Supported tools: deepin-screen-recorder, spectacle, flameshot, gnome-screenshot, xfce4-screenshooter, mate-screenshot, ksnapshot, scrot. Thanks to [@hthienloc](https://github.com/hthienloc) for the solution.
-- **✅ Fixed: No title bar with minimize/maximize/close buttons** - Thanks to [@NanKillBro](https://github.com/NanKillBro) for the solution. For more details, see [issue #4](https://github.com/doandat943/zalo-for-linux/issues/4)
+- **✅ Fixed: Screenshot without/with Zalo window button** - Uses native Linux screenshot tools (see [issue #19](https://github.com/namchamvinhcuu/zalo-for-linux/issues/19)). Supported tools: deepin-screen-recorder, spectacle, flameshot, gnome-screenshot, xfce4-screenshooter, mate-screenshot, ksnapshot, scrot. Thanks to [@hthienloc](https://github.com/hthienloc) for the solution.
+- **✅ Fixed: No title bar with minimize/maximize/close buttons** - Thanks to [@NanKillBro](https://github.com/NanKillBro) for the solution. For more details, see [issue #4](https://github.com/namchamvinhcuu/zalo-for-linux/issues/4)
 - **✅ Fixed: No tray menu icon**
-- **✅ Fixed: Freeze on login screen** - Replaced macOS sqlite3 binaries with native Linux builds. See [issue #13](https://github.com/doandat943/zalo-for-linux/issues/13).
+- **✅ Fixed: Freeze on login screen** - Replaced macOS sqlite3 binaries with native Linux builds. See [issue #13](https://github.com/namchamvinhcuu/zalo-for-linux/issues/13).
 
 This project is best suited for users who need a native-feeling Zalo client on Linux and are comfortable with the technical workarounds required for full functionality.
 
@@ -48,7 +46,7 @@ We strongly recommend using **Gear Lever** to integrate the AppImage perfectly i
 
 **Note:** Zalo for Linux comes with a built-in updater. Whenever a new release is available, you will be prompted within the Zalo app to download and apply the update seamlessly without leaving the application.
 
-1.  Download the latest `.AppImage` file from the [**Releases**](https://github.com/doandat943/zalo-for-linux/releases) page.
+1.  Download the latest `.AppImage` file from the [**Releases**](https://github.com/namchamvinhcuu/zalo-for-linux/releases) page.
 2.  Install **Gear Lever** from [Flathub](https://flathub.org/en/apps/it.mijorus.gearlever).
 3.  Open **Gear Lever**.
 4.  Click the **"Open"** button in the top-left corner and select the `.AppImage` file you downloaded.
@@ -73,7 +71,7 @@ Steps:
 
 ```bash
 # Clone the repository
-git clone https://github.com/doandat943/zalo-for-linux.git
+git clone https://github.com/namchamvinhcuu/zalo-for-linux.git
 cd zalo-for-linux
 # Then initialize or update submodules
 git submodule update --init --recursive

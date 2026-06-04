@@ -101,14 +101,20 @@ zalo-for-linux/
 │       ├── patch-titlebar.js        # T,frame:!1 -> !0  (bật native title bar)
 │       ├── patch-sqlite3.js         # thay node_sqlite3.node macOS bằng bản Linux
 │       ├── patch-db-cross-v4.js     # build db-cross-v4 + patch binding.js + platform ID 25->24
-│       └── patch-clipboard-paste.js # fix paste ảnh từ clipboard (X11/Wayland)
+│       ├── patch-clipboard-paste.js # fix paste ảnh từ clipboard (X11/Wayland)
+│       ├── patch-tray-icon.js       # fix tray icon Zalo vỡ trên Linux (favicon.ico -> png)
+│       ├── patch-tray-badge.js      # un-gate badge chưa đọc (tray dot + dock count)
+│       └── patch-zcall.js           # un-gate nút gọi + wire W() spawn -> route-B Wine bridge
 ├── plugins/
-│   ├── zadark/   # git submodule (quaric/zadark) — dark mode, tích hợp lúc build
-│   ├── zalux/    # updater + cửa sổ version (trigger qua document.title='ZALUX_TRIGGER')
-│   └── screenshot/ # intercept IPC 'screen-capture' → gọi tool screenshot native Linux
+│   ├── zadark/      # git submodule (quaric/zadark) — dark mode, tích hợp lúc build
+│   ├── zadark-css/  # inject CSS/font ZaDark lúc runtime (SPA strip <link>)
+│   ├── screenshot/  # intercept IPC 'screen-capture' → gọi tool screenshot native Linux
+│   ├── tray-badge/  # chấm đỏ tray + số dock chưa đọc (qua D-Bus bền)
+│   └── zalux/       # updater (mặc định DISABLED — require trong main.js đã comment)
 ├── nativelibs/              # reimplement clean-room các .node addon macOS bằng C++
 │   ├── builder.js           # CLI build addon (đọc Electron version từ root package.json)
-│   └── db-cross-v4/         # giải mã backup / E2EE message sync
+│   ├── db-cross-v4/         # giải mã backup / E2EE message sync
+│   └── zcall-bridge/        # cầu gọi thoại route B (bridge-daemon + PE32 Wine shim)
 ├── app/                     # ⚠️ GITIGNORED — regenerate mỗi lần build, KHÔNG sửa tay/commit
 ├── temp/                    # cache DMG đã tải
 └── dist/                    # output AppImage
