@@ -31,6 +31,7 @@
 
 const fs = require('fs-extra');
 const path = require('path');
+const os = require('os');
 const { execFileSync } = require('child_process');
 const logger = require('../utils/logger');
 
@@ -212,6 +213,54 @@ function stageBridgeFiles() {
     logger.dim('Staged app/zcall-bridge/bridge-shim.exe');
   } else {
     logger.warn('bridge-shim.exe unavailable (need gcc-mingw-w64-i686) — Wine engine bridge disabled');
+  }
+
+  stageBundle(destDir);
+}
+
+// Stage the self-contained pieces (approach A) into app/zcall-bridge/: a portable Wine and
+// the trimmed call engine. Sources are env-overridable (defaults match dev1-pc). Big copies,
+// so idempotent (skip if already staged unless ZCALL_BUNDLE_FORCE). Best-effort: if a source
+// is missing, the daemon falls back at runtime (system wine / prefix engine), so the pipeline
+// never breaks.
+function stageBundle(destDir) {
+  const force = !!process.env.ZCALL_BUNDLE_FORCE;
+  const wineSrc = process.env.ZCALL_BUNDLE_WINE ||
+    path.join(os.homedir(), 'Namchamvinhcuu-Wine-Apps', '_wine-bundle', 'wine-11.10-amd64-wow64');
+  const engineSrc = process.env.ZCALL_BUNDLE_ENGINE ||
+    path.join(os.homedir(), 'Namchamvinhcuu-Wine-Apps', 'Zalo', 'drive_c', 'zalo-engine');
+
+  // Portable Wine.
+  const wineDest = path.join(destDir, 'wine');
+  if (fs.existsSync(path.join(wineSrc, 'bin', 'wine'))) {
+    if (force || !fs.existsSync(path.join(wineDest, 'bin', 'wine'))) {
+      logger.info('Staging bundled Wine (~800MB, one-time)...');
+      fs.removeSync(wineDest);
+      // Preserve symlinks — Wine's bin/ tools are symlinks to the loader (argv[0] dispatch)
+      // and lib/ has version symlinks; dereferencing breaks the tree.
+      fs.copySync(wineSrc, wineDest, { dereference: false });
+      logger.dim('Staged app/zcall-bridge/wine');
+    } else {
+      logger.dim('Bundled Wine already staged, skipping');
+    }
+  } else {
+    logger.warn(`Bundled Wine not found at ${wineSrc} — AppImage falls back to system wine`);
+  }
+
+  // Call engine, trimmed: drop meeting/screen-capture binaries + PDBs (not needed for 1:1 calls).
+  const engineDest = path.join(destDir, 'engine');
+  const ENGINE_SKIP = new Set(['ZaviMeet.exe', 'ZaloCap.exe', 'Zalo.exe', 'pdbs']);
+  if (fs.existsSync(path.join(engineSrc, 'ZaloCall.exe'))) {
+    if (force || !fs.existsSync(path.join(engineDest, 'ZaloCall.exe'))) {
+      logger.info('Staging bundled call engine (trimmed)...');
+      fs.removeSync(engineDest);
+      fs.copySync(engineSrc, engineDest, { filter: (src) => !ENGINE_SKIP.has(path.basename(src)) });
+      logger.dim('Staged app/zcall-bridge/engine (trimmed)');
+    } else {
+      logger.dim('Bundled engine already staged, skipping');
+    }
+  } else {
+    logger.warn(`Bundled engine not found at ${engineSrc} — AppImage falls back to prefix engine`);
   }
 }
 
