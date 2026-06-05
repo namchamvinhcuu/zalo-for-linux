@@ -6,7 +6,7 @@ Thanks **realdtn2** for the solution: [realdtn2/zalo-linux-2026](https://github.
 
 ## ⚠️ Known Limitations
 
-- **Video calls are not supported yet.** Everything else works on Linux — messaging, E2EE message sync, 1:1 voice calls, dark mode (ZaDark), native screenshots, clipboard image paste, title bar, and tray/dock unread indicators.
+- **Video calls connect but you can't send your own camera yet.** You can join a video call and hear + see the other person fine (two-way audio + their incoming video); your local webcam just isn't sent (Zalo shows a "camera not found" notice). This is a limitation of the Wine-bridged call engine, not a crash. Everything else works on Linux — messaging, E2EE message sync, 1:1 voice calls, dark mode (ZaDark), native screenshots, clipboard image paste, title bar, and tray/dock unread indicators.
 
 ## 🌙 ZaDark Integration
 
