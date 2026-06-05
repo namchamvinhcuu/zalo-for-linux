@@ -60,9 +60,19 @@ function wineEnv(extra) {
   // Disable mscoree/mshtml everywhere: the engine is Qt (no .NET/HTML), and the bundled
   // Wine ships no wine-mono/gecko, so without this Wine pops a blocking "install wine-mono"
   // dialog at engine startup that stalls the whole call.
+  //
+  // Disable qcap (DirectShow video-capture): on a VIDEO call the engine enumerates the
+  // capture filter's stream caps then calls IAMVideoControl::GetFrameRateList; with a real
+  // webcam present it crashes there (read AV at an ASCII-looking address — a bug in the
+  // closed ZaloCall.exe ⇄ Wine capture path, not patchable from our side). With qcap off the
+  // engine finds no camera and takes the safe "no camera" path: the call still connects with
+  // two-way audio + the remote video, it just can't SEND our local video. Audio is unaffected
+  // — the engine captures the mic via mmdevapi/WASAPI, not qcap. Override via WINEDLLOVERRIDES
+  // to re-enable (e.g. when experimenting with local-video capture). See
+  // [[2026-06-05-ZCall-Video-GetFrameRateList-Crash]].
   const env = {
     ...process.env, WINEPREFIX, WINEDEBUG: process.env.WINEDEBUG || '-all',
-    WINEDLLOVERRIDES: process.env.WINEDLLOVERRIDES || 'mscoree,mshtml=',
+    WINEDLLOVERRIDES: process.env.WINEDLLOVERRIDES || 'mscoree,mshtml=;qcap=',
     ...extra,
   };
   if (fs.existsSync(path.join(BUNDLE_WINE_DIR, 'bin', 'wineserver'))) {
