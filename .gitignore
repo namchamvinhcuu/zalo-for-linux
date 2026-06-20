@@ -1,6 +1,10 @@
 # Obsidian vault symlink (per-machine; target lives on cloud storage)
 /.obsidian-vault
 
+# Claude Code config (per-machine; CLAUDE.md is a symlink to cloud claude-agents)
+/.claude/
+/CLAUDE.md
+
 # Dependencies
 /node_modules/
 
