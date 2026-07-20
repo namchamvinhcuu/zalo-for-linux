@@ -1,0 +1,18 @@
+# Graphify build ignore (per-máy) — loại core symlink + vendored/build/test noise
+/odoo
+/odoo17
+node_modules/
+bin/
+obj/
+dist/
+build/
+out/
+vendor/
+packages/
+filestore/
+*.min.js
+*.log
+**/static/lib/**
+**/static/src/lib/**
+**/tests/**
+**/__pycache__/**
