@@ -143,5 +143,5 @@ typings/
 
 # Temporary directories
 tmp/
-temp/ .claude/
+temp/
 .gemini/
