@@ -145,3 +145,4 @@ typings/
 tmp/
 temp/
 .gemini/
+.claude/
